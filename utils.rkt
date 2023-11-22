@@ -2,12 +2,12 @@
 
 (require rosette/lib/synthax)
 
-(provide register lift LUT4)
-
-(define-symbolic init (bitvector 32))
+(provide register
+         lift
+         LUT4)
 
 (define (register d)
-  (lambda (t) (if (= t 0) init (d (- t 1)))))
+  (lambda (t) (if (= t 0) 0 (d (- t 1)))))
 
 (define (lift op . args)
   (lambda (t) (apply op (map (lambda (stream) (stream t)) args))))
