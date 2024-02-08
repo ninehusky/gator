@@ -1,5 +1,6 @@
 Require Import Utf8.
 
+
 Require Import Arith Lia List String.
 Import ListNotations.
 Open Scope string.
@@ -10,76 +11,58 @@ Set Implicit Arguments.
 Inductive OpType : Set :=
   | Plus.
 
-Inductive ProgId : Set :=
-  | Id (id_num : nat) (w : nat).
+Definition Id : nat.
+(* var, time -> val *)
+Definition env := string -> nat -> nat.
+Definition time := nat.
 
 Inductive node : Set :=
   | BV (b : nat)
-  | Var (x : nat) 
-  | Op (o : OpType) (e1 : ProgId) (e2 : ProgId)
-  | Reg (regid : ProgId) (init : nat).
+  | Var (s : string)
+  | Op (o : OpType) (e1 : nat) (e2 : nat)
+  | Reg (regid : nat) (init : nat).
+  
+Definition prog := list (node).
 
-(* type prog is a list of pairs with type (ProgId, node) *)
-Definition prog := list (ProgId * node).
-
+(* Ltac --> interpreter, starter code for some homework thing in 505 *)
 (* index is a function that takes an id and a program, and returns the node at p[i] *)
-Fixpoint index (i : nat) (p : prog) : (ProgId * node) :=
-  match p with
-    | nil => (Id 123 0, BV 123)
-    | (Id id_num w, n) :: p' => if Nat.eqb i id_num then (Id id_num w, n) else index i p'
+Fixpoint index (i : nat) (p : prog) : node :=
+  match (i, p) with
+    | (_, []) => (Var "error")
+    | (0, (n :: _)) => n
+    | (S n, p) => index n (tl p)
   end.
 
-(*
-  A program is well-formed iff:
-  1. p.root \in p.ids                                                       (I think we get this for free because lists)
-  2. All ids are unique and distinct                                        (I think we get this for free because lists?)
-  3. The inputs of all nodes in p are ids of other nodes in p               (Need to check for this? Not sure how it impacts termination of eval)
-  4. All primitive nodes contain well-formed programs                       (Irrelevant)
-  5. All primitive nodes bind exactly their free variables                  (Irrelevant)
-  6. Program p is free of combinational loops.                              
- *)
-(* eval_prog is a function that takes a program, an environment, a time, and a node, and returns a natural number *)
-Fixpoint eval_prog (p : prog) (env : nat -> nat -> nat) (n : node) (t : nat) (w : nat) : nat :=
-    match n with
-      | BV b => b
-      | Var x => env x t
-      | Op Plus (Id id1 w1) (Id id2 w2) => eval_prog p env (snd (index id1 p)) t + eval_prog p env t (snd (index id2 p))
-      | (Reg (Id n' w) init) => if Nat.eqb t 0 then init else eval_prog p env (t - 1) (snd (index n' p))
-    end.
+(* explore writing eval as inductive data *)
 
-(* Fixpoint eval (e : node) (env : nat -> nat -> nat) (w : nat) (t : nat) : nat :=
-  match e with
-  | BV b => b
-  | Var x => env x t
-  | Op Plus e1 e2 => (assert )eval e1 env t + eval e2 env t 
-  | Reg n init => if Nat.eqb t 0 then init else eval n env (t - 1)
-  end.
+(* step : prog -> env -> id -> time -> bv -> Prop *)
+Inductive step : prog -> env -> nat -> time -> nat -> Prop :=
+| step_bv : forall p env id t b,
+    step p env id t b
+| step_var : forall p env id t x,
+    step p env id t (env x t)
+| step_op : forall p env id t e1 e2 v1 v2,  
+    step p env e1 t v1 ->
+    step p env e2 t v2 ->
+    step p env id t (v1 + v2) 
+| step_reg : forall p env id t n init, 
+    step p env n t init ->
+    (t = 0 -> step p env id t init \/ t > 0 -> step p env id (t - 1) 0).
 
-Definition prog1 : node :=
-  (Reg (Op Plus (Var 1) (Var 2)) 0).
-
-Definition prog2 : node :=
-  (Op Plus (Reg (Var 1) 0) (Reg (Var 2) 0)).
-
-Lemma eval_prog1 : forall env t,
-  t > 1 ->
-  eval prog1 env t = eval prog2 env t.
+Lemma check_simple_comb_output :
+  let prog := [(Op Plus 1 2) ; (BV 1) ; (BV 2)] in
+  let env    := (fun x y => 0) in
+  let id_num := 0 in
+  forall t,
+    step prog env id_num t 3.
 Proof.
-  intros env.
-  intros t.
-  intros H.
-  simpl.
-  destruct t.
-  - inversion H.
-  - simpl. reflexivity. 
+  intros.
+  unfold prog.
+  unfold env.
+  unfold id_num.
+  apply step_op with (e1 := 1) (e2 := 2) (v1 := 1) (v2 := 2).
+  - constructor.
+  - apply step_bv.
   Qed.
 
-  (* induction t.
-  - intros. inversion H.
-  - intros.
-    simpl.
-    destruct t.
-    + simpl. reflexivity.
-    + simpl. reflexivity.
-Qed. *)
- *)
+
