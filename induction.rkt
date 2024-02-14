@@ -34,15 +34,7 @@
 
 (define cache (make-hash))
 
-(hash-set! cache (- t 1) (bv 1 1))
-
-(define result (interpret prog '() 0 t cache))
-
 (verify (begin
-          ;;;   base case
-          ;;;   (assume (bveq (interpret prog '() 0 0) (bv 1 1)))
-          ;;;   inductive hypothesis
-          ;;;   (assume (bveq (interpret prog '() 0 (+ -1 t)) (bv 1 1)))
+          (hash-set! cache (- t 1) (bv 1 1))
+          (assume (>= t 0))
           (assert (bveq (interpret prog '() 0 t cache) (bv 1 1)))))
-
-(bveq (interpret prog '() 0 t cache) (bv 1 1))
