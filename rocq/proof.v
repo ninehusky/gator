@@ -53,11 +53,10 @@ Inductive step : prog -> env -> nat -> time -> nat -> Prop :=
     t = 0 ->
     index id p = Some (Reg n init) ->
     step p env id t init
-| step_reg : forall p env id t n init b, 
+| step_reg_seq : forall p env id t n init b, 
     index id p = Some (Reg n init) ->
-    t > 0 ->
     step p env n t b ->
-    step p env id t b.
+    step p env id (S t) b.
 
 Lemma check_simple_comb_output :
   let prog := [(Op Plus 1 2) ; (BV 1) ; (BV 2)] in
@@ -76,6 +75,36 @@ Proof.
   - apply step_bv. unfold index. simpl. reflexivity.
 Qed.
 
+Lemma check_simple_seq_output :
+  let prog := [(Reg 1 1) ; (BV 1)] in
+  let id_num := 0 in
+  forall env t,
+    step prog env id_num t 1.
+Proof.
+  intros.
+  destruct t.
+  - apply step_reg_init with (n := 1); eauto.
+  - apply step_reg_seq with (n := 1) (init := 1).
+    + auto.
+    + apply step_bv. auto.
+Qed.
+
+Lemma reasoning_about_sequential_loops :
+  let prog := [(Reg 1 0) ; (Op Plus 0 2) ; (BV 1) ] in (* This is a counter, prog[0] at time t will be t *)
+  forall env t,
+    step prog env 0 t t.
+  Proof.
+    intros.
+    induction t.
+    - apply step_reg_init with (n := 1) (init := 0); eauto.
+    - apply step_reg_seq with (n := 1) (init := 0); eauto.
+      + replace (S t) with (t + 1) by lia.
+        apply step_op with (p := prog0) (env := env0) (id := 1) (t := t) (e1 := 0) (e2 := 2) (v1 := t) (v2 := 1).
+        * simpl. reflexivity.
+        * apply IHt.
+        * apply step_bv. simpl. reflexivity.
+Qed.
+
 Lemma simple_equiv_check :
   let prog1 := [(Reg 1 0) ; (Op Plus 2 3) ; (BV 1) ; (BV 2)] in
   let prog2 := [(Op Plus 1 2) ; (Reg 3 0) ; (Reg 4 0) ; (BV 1) ; (BV 2)] in
@@ -84,26 +113,42 @@ Lemma simple_equiv_check :
     t > 1 ->
     exists b, step prog1 env id_num t b /\ step prog2 env id_num t b.
 Proof.
-  intros. 
-  eexists ?[b].
-  unfold id_num.
-  econstructor.
-  - apply step_reg with (n := 1) (init := 0) (b := 3).
-    + simpl. reflexivity.
-    + lia.
-    + unfold prog1. apply step_op with (p := prog1) (env := env0) (t := t) (id := 1) (e1 := 2) (e2 := 3) (v1 := 1) (v2 := 2).
-     * simpl. reflexivity.
-     * econstructor. simpl. reflexivity.
-     * econstructor. simpl. reflexivity.
-  - apply step_op with (p := prog2) (env := env0) (t := t) (id := 0) (e1 := 1) (e2 := 2) (v1 := 1) (v2 := 2).
-    + simpl. reflexivity.
-    + apply step_reg with (p := prog2) (env := env0) (t := t) (n := 3) (init := 0) (b := 1).
+  intros.
+  destruct t.
+  - inversion H.
+  - exists 3. split.
+    + apply step_reg_seq with (n := 1) (init := 0); eauto. 
+      replace 3 with (1 + 2) by lia.
+      apply step_op with (p := prog1) (env := env0)  (e1 := 2) (e2 := 3); eauto.
+      * apply step_bv. simpl. reflexivity.
+      * apply step_bv. simpl. reflexivity.
+    + replace 3 with (1 + 2) by lia.
+     apply step_op with (p := prog2) (env := env0) (e1 := 1) (e2 := 2) (v1 := 1).
       * simpl. reflexivity.
-      * lia.
-      * econstructor. simpl. reflexivity.
-    + apply step_reg with (p := prog2) (env := env0) (t := t) (n := 4) (init := 0) (b := 2).
-      * simpl. reflexivity.
-      * lia.
-      * econstructor. simpl. reflexivity.
-  Qed.
+      * apply step_reg_seq with (n := 3) (init := 0); eauto; apply step_bv; eauto.
+      * apply step_reg_seq with (n := 4) (init := 0); eauto; apply step_bv; eauto.
+Qed.
 
+Lemma simple_reg_check :
+  let prog := [(Reg 0 0)] in
+  forall env t,
+    step prog env 0 t 0.
+Proof.
+  intros.
+  destruct t.
+  - apply step_reg_init with (n := 0) (init := 0); eauto.
+  - apply step_reg_seq with (n := 0) (init := 0); eauto.
+   destruct t.
+    + apply step_reg_init with (n := 0) (init := 0); eauto.
+    + apply step_reg_seq with (n := 0) (init := 0); eauto.
+    destruct t. apply step_reg_init with (n := 0) (init := 0); eauto.
+    apply step_reg_seq with (n := 0) (init := 0); eauto.
+    destruct t. apply step_reg_init with (n := 0) (init := 0); eauto.
+    apply step_reg_seq with (n := 0) (init := 0); eauto.
+Admitted.
+
+
+ 
+
+
+  

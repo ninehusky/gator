@@ -11,14 +11,13 @@
 (define (lift op . args)
   (lambda (t) (apply op (map (lambda (stream) (stream t)) args))))
 
+;;; (a + b) & c
 (define (addand0 a b c)
-  (lift bvand (register (lift bvadd (register a) (register b))) (register (register c))))
+  (register (lift bvand (lift bvadd a b) c)))
 
+;;; (a + b) [& or | or ^] c
 (define (addand1 a b c)
-  (register (register (lift bvand (lift bvadd a b) c))))
-
-(define (addand2 a b c)
-  (lift bvand (register (register (lift bvadd a b))) (register (register c))))
+  (register (lift (choose bvand bvor bvxor) (lift bvadd a b) c)))
 
 (define-symbolic chooser boolean?)
 (define (addand3 a b c)
@@ -27,6 +26,7 @@
 (define-symbolic a b c (~> integer? (bitvector 32)))
 (define-symbolic t integer?)
 
-(verify (begin
-          (assume (> t 1))
-          (assert (bveq ((addand0 a b c) t) ((addand3 a b c) t)))))
+(synthesize #:forall (list a b c t)
+            #:guarantee (begin
+                          (assume (> t 1))
+                          (assert (bveq ((addand0 a b c) t) ((addand1 a b c) t)))))

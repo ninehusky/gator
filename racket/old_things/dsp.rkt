@@ -30,4 +30,4 @@
 (synthesize #:forall (list a b c d t)
             #:guarantee (begin
                           (assume (> t 3))
-                          (assert (bveq ((addmuland-3cycle a b c d) t) ((DSP a b c d) t)))))
+                          (assert (bveq ((addmuland-3cycle b a c d) t) ((DSP a b c d) t)))))
