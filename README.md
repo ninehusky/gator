@@ -1,6 +1,6 @@
 # gator 🐊
 
-Gator is the first step in creating open-source hardware
+Gator is the next step in creating open-source hardware
 compilation tools that are **correct** and **extensible**.
 
 ## What is Gator?
