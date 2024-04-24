@@ -19,7 +19,6 @@
             (for/list ([id ids])
               (interpret prog env id time cache bitwidth)))]
     [`(Reg ,reg-id ,init)
-     ;;;  (displayln (format "time is ~a" time))
      (if (= time 0)
          init
          (if (assoc time cache)
