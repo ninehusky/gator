@@ -19,6 +19,10 @@ to provide these critical correctness guarantees to the hardware designer.
 See my [slides](https://ninehusky.github.io/assets/02-14-2024-gator-talk.pdf)
 for a high-level overview of the project.
 
+## More
+You'll need to set `$GATOR_DIR` to this. You can do this by running `export GATOR_DIR=$(pwd)` in the root directory of this repository.
+yaa
+
 ## Acknowledgements
 
 Gator is an offshoot project of the [Lakeroad](https://github.com/uwsampl/lakeroad) project
