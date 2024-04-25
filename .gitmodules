@@ -1,4 +1,0 @@
-[submodule "rust/src/churchroad"]
-	path = rust/src/churchroad
-	url = git@github.com:uwsampl/churchroad.git
-	branch = ninehusky-add-interpreter
