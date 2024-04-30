@@ -1,0 +1,4 @@
+[submodule "churchroad-gator"]
+	path = churchroad-gator
+	url = git@github.com:ninehusky/churchroad-gator.git
+	branch = ninehusky-json-support
