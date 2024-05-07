@@ -49,6 +49,3 @@
 (define egraph-json (call-with-input-file (egraph-json-filepath) read-json))
 (define gator-expr (json->gator egraph-json))
 (displayln "done")
-
-
-

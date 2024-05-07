@@ -41,6 +41,9 @@
     (match-let ([(list node-name type) (dict-ref type-node 'children)])
       (values node-name (dict-ref bv->bitwidth (string->symbol type))))))
 
+;;; Returns a pair of (prog, out-ids), where prog is a list of Gator expressions
+;;; and out-ids is a list of the ids of the output nodes.
+;;; Intuitively, out-ids is the list of indices of meaningful outputs in the program.
 (define (json->gator egraph-json)
   (when (not (jsexpr? egraph-json))
     (error 'json->gator "expected a JSON object, got ~s" egraph-json))
@@ -81,7 +84,6 @@
     (for/hash ([(name node) (in-hash (dict-ref egraph-json 'nodes))]
                #:when (member (string->symbol (dict-ref node 'eclass)) (hash-keys pruned-class-data)))
       (values name node)))
-
   ;;; eclass->id maps the keys in json['class_data'] to natural numbers
   (define eclass->gator-id
     (let ([eclass->id (make-hash)])
@@ -133,5 +135,18 @@
       [else (dict-ref node 'op)]))
 
   ;;; for i = 0 to len(eclass->gator-id) - 1
-  (for/list ([(eclass _) (in-hash pruned-class-data)])
-    (displayln (gen-gator-stmt eclass))))
+  (define prog
+    (for/list ([(eclass _) (in-hash pruned-class-data)])
+      (displayln (gen-gator-stmt eclass))))
+
+  (define out-ids
+    (for/list ([(name node) (in-hash nodes)]
+               #:when
+               (and (equal? (dict-ref node 'op) "IsPort")
+                    (equal? (dict-ref (dict-ref nodes
+                                                (string->symbol (third (dict-ref node 'children))))
+                                      'op)
+                            "Output")))
+      (dict-ref node-name->gator-id (last (dict-ref node 'children)))))
+
+  (cons prog out-ids))
