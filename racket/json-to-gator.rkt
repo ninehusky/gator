@@ -2,24 +2,10 @@
 
 (require json
          rosette
+         "utils.rkt"
          (prefix-in gator: "gator-language.rkt"))
 
 (provide json->gator)
-
-;;; TODO(@ninehusky): let's move this to the interpreter, this isn't as useful here and makes
-;;; the interpreter pretty ugly in some places.
-;;; Takes Churchroad bvop and returns the Rosette equivalent.
-(define churchroad->rosette-bvop
-  (make-hash (list (cons "Concat" concat)
-                   (cons "ZeroExtend" zero-extend)
-                   (cons "Eq" bveq)
-                   ;;; TODO(@ninehusky): handle signedness eventually
-                   (cons "Shr" bvlshr)
-                   (cons "Add" bvadd)
-                   (cons "And" bvand)
-                   (cons "Or" bvor)
-                   (cons "Xor" bvxor)
-                   (cons "Extract" extract))))
 
 ;;; Returns a map from eclass->type, if there is one.
 (define (type-inference egraph-json)
@@ -110,7 +96,7 @@
     (define children (dict-ref node 'children))
     (define op-name (car children))
     (define op-node (dict-ref nodes (string->symbol op-name)))
-    (define func (dict-ref churchroad->rosette-bvop (dict-ref op-node 'op)))
+    (define func (dict-ref op-node 'op))
     (define op-children-values
       (let ([churchroad-values (map (lambda (name)
                                       (dict-ref (dict-ref nodes (string->symbol name)) 'op))

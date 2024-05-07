@@ -2,6 +2,7 @@
 
 (require rosette
          rosette/lib/destruct
+         "utils.rkt"
          (prefix-in gator: "gator-language.rkt"))
 
 (provide interpret)
@@ -18,5 +19,5 @@
              (let ([children (map (lambda (child-id) (interpret prog env child-id time cache))
                                   op-children)])
                (match op
-                 [(? (curry eq? zero-extend)) (apply zero-extend (append children op-args))]
-                 [else (apply op (append op-args children))]))]))
+                 ["ZeroExtend" (apply zero-extend (append children op-args))]
+                 [else (apply (dict-ref churchroad->rosette-bvop op) (append op-args children))]))]))
