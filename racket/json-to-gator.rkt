@@ -6,6 +6,8 @@
 
 (provide json->gator)
 
+;;; TODO(@ninehusky): let's move this to the interpreter, this isn't as useful here and makes
+;;; the interpreter pretty ugly in some places.
 ;;; Takes Churchroad bvop and returns the Rosette equivalent.
 (define churchroad->rosette-bvop
   (make-hash (list (cons "Concat" concat)
@@ -107,13 +109,18 @@
   (define (gen-gator-op node)
     (define children (dict-ref node 'children))
     (define op-name (car children))
-    (define operands (map (lambda (child) (dict-ref node-name->gator-id child)) (cdr children)))
     (define op-node (dict-ref nodes (string->symbol op-name)))
-    ;;; Now, let's get the children for the function call
+    (define func (dict-ref churchroad->rosette-bvop (dict-ref op-node 'op)))
     (define op-children-values
-      (map (lambda (name) (dict-ref (dict-ref nodes (string->symbol name)) 'op))
-           (dict-ref op-node 'children)))
-    (gator:op (dict-ref churchroad->rosette-bvop (dict-ref op-node 'op)) op-children-values operands))
+      (let ([churchroad-values (map (lambda (name)
+                                      (dict-ref (dict-ref nodes (string->symbol name)) 'op))
+                                    (dict-ref op-node 'children))])
+        (match (dict-ref op-node 'op)
+          ["ZeroExtend" (list (bitvector (string->number (first churchroad-values))))]
+          ["Extract" (map string->number churchroad-values)]
+          [else churchroad-values])))
+    (define operands (map (lambda (child) (dict-ref node-name->gator-id child)) (cdr children)))
+    (gator:op func op-children-values operands))
 
   (define (gen-gator-stmt eclass)
     ;;; find the nodes that have the given eclass
@@ -137,7 +144,7 @@
   ;;; for i = 0 to len(eclass->gator-id) - 1
   (define prog
     (for/list ([(eclass _) (in-hash pruned-class-data)])
-      (displayln (gen-gator-stmt eclass))))
+      (gen-gator-stmt eclass)))
 
   (define out-ids
     (for/list ([(name node) (in-hash nodes)]

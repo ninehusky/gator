@@ -1,7 +1,9 @@
 #!/usr/bin/env racket
 #lang racket
 
-(require "json-to-gator.rkt")
+(require rosette
+         "json-to-gator.rkt"
+         "gator-interpret.rkt")
 
 (define verilog-module-filepath (make-parameter #f))
 (define top-module-name (make-parameter #f))
@@ -48,4 +50,21 @@
 ;;; Read from the JSON file.
 (define egraph-json (call-with-input-file (egraph-json-filepath) read-json))
 (define gator-expr (json->gator egraph-json))
+
+(pretty-print (car gator-expr))
+
+(interpret (car gator-expr)
+           (lambda (name time)
+             (match name
+               ["\"INIT\"" (bv 0 64)]
+               ["\"I5\"" (bv 0 1)]
+               ["\"I4\"" (bv 0 1)]
+               ["\"I3\"" (bv 0 1)]
+               ["\"I2\"" (bv 0 1)]
+               ["\"I1\"" (bv 0 1)]
+               ["\"I0\"" (bv 0 1)]))
+           14
+           0
+           (make-hash))
+
 (displayln "done")
