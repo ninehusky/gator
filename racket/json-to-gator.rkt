@@ -120,10 +120,13 @@
     (define children (dict-ref node 'children))
     (match (dict-ref node 'op)
       ["Var"
-       (match-let ([(list name bw) (map (lambda (val)
-                                          (dict-ref (dict-ref nodes (string->symbol val)) 'op))
-                                        children)])
-         (gator:var name bw))]
+       (match-let* ([(list name bw) (map (lambda (val)
+                                           (dict-ref (dict-ref nodes (string->symbol val)) 'op))
+                                         children)]
+                    [name-str name])
+         ;;; Remove quotes from `name`.
+         (gator:var (string->symbol (substring name-str 1 (sub1 (string-length name-str))))
+                    (string->number bw)))]
       [(or "Op1" "Op2") (gen-gator-op node)]
       [else (dict-ref node 'op)]))
 
@@ -133,13 +136,14 @@
       (gen-gator-stmt eclass)))
 
   (define out-ids
-    (for/list ([(name node) (in-hash nodes)]
+    (for/hash ([(name node) (in-hash nodes)]
                #:when
                (and (equal? (dict-ref node 'op) "IsPort")
-                    (equal? (dict-ref (dict-ref nodes
-                                                (string->symbol (third (dict-ref node 'children))))
-                                      'op)
-                            "Output")))
-      (dict-ref node-name->gator-id (last (dict-ref node 'children)))))
+                    (equal?
+                     (dict-ref (dict-ref nodes (string->symbol (third (dict-ref node 'children))) 'op)
+                               'op)
+                     "Output")))
+      (values (dict-ref (dict-ref nodes (string->symbol (second (dict-ref node 'children)))) 'op)
+              (dict-ref node-name->gator-id (last (dict-ref node 'children))))))
 
   (cons prog out-ids))

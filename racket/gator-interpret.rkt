@@ -16,8 +16,10 @@
   (destruct (list-ref prog id)
             [(gator:var name bw) (env name time)]
             [(gator:op op op-args op-children)
-             (let ([children (map (lambda (child-id) (interpret prog env child-id time cache))
-                                  op-children)])
+             ;;; TODO: why do we need this flatten?
+             (let ([children (flatten (map (lambda (child-id)
+                                             (interpret prog env child-id time cache))
+                                           op-children))])
                (match op
                  ["ZeroExtend" (apply zero-extend (append children op-args))]
                  [else (apply (dict-ref churchroad->rosette-bvop op) (append op-args children))]))]))
