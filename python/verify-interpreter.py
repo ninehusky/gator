@@ -149,6 +149,7 @@ if __name__ == "__main__":
 
     # Compare outputs
     churchroad_output = churchroad_output.decode().split("\n")
+
     # throw away first four lines of churchroad output
     churchroad_output = churchroad_output[4:]
 
