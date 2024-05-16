@@ -21,5 +21,5 @@
                                              (interpret prog env child-id time cache))
                                            op-children))])
                (match op
-                 ["ZeroExtend" (apply zero-extend (append children op-args))]
-                 [else (apply (dict-ref churchroad->rosette-bvop op) (append op-args children))]))]))
+                 [(? (curry eq? zero-extend)) (apply zero-extend (append children op-args))]
+                 [else (apply op (append op-args children))]))]))

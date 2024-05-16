@@ -96,7 +96,7 @@
     (define children (dict-ref node 'children))
     (define op-name (car children))
     (define op-node (dict-ref nodes (string->symbol op-name)))
-    (define func (dict-ref op-node 'op))
+    (define func (dict-ref churchroad->rosette-bvop (dict-ref op-node 'op)))
     (define op-children-values
       (let ([churchroad-values (map (lambda (name)
                                       (dict-ref (dict-ref nodes (string->symbol name)) 'op))

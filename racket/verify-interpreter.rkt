@@ -42,8 +42,6 @@
                    (cons "I0" 1)
                    (cons "INIT" 64))))
 
-(pretty-print (car (json->gator egraph-json)))
-
 (for ([test-num (in-range (string->number (num-test-cases)))])
   (define curr-env (make-hash))
   (for ([clock-cycle (in-range (string->number (num-clock-cycles)))])

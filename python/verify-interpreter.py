@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     gator_cmd = [
         "racket",
-        "racket/main.rkt",
+        "racket/verify-interpreter.rkt",
         "--json-filepath",
         args.egraph_json_path,
         "--num-test-cases",
@@ -108,7 +108,6 @@ if __name__ == "__main__":
         str(NUM_CLOCK_CYCLES),
         "--output-signal-name",
         "O",
-        # args.outputs.split(";")[0].split(",")[0][1:],
     ]
 
     churchroad_proc = subprocess.Popen(
@@ -160,9 +159,8 @@ if __name__ == "__main__":
         exit(1)
 
     for churchroad_line, gator_line in zip(churchroad_output, gator_output):
+        print(f"churchroad_line: {churchroad_line}, gator_line: {gator_line}")
         if churchroad_line != gator_line:
-            print(f"Churchroad output: {churchroad_line}")
-            print(f"Gator output: {gator_line}")
             print("Outputs are not the same")
             exit(1)
 

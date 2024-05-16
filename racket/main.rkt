@@ -1,31 +1,20 @@
 #!/usr/bin/env racket
-#lang errortrace racket
+#lang errortrace rosette
 
 (require rosette
+         rosette/lib/synthax
+         json
+         (prefix-in gator: "gator-language.rkt")
          "json-to-gator.rkt"
          "gator-interpret.rkt")
 
-(define verilog-module-filepath (make-parameter #f))
-(define top-module-name (make-parameter #f))
-
-(define verilog-module-out-signal (make-parameter #f))
-(define verilog-module-out-bitwidth (make-parameter #f))
-(define output-dir (make-parameter #f))
-
 (define egraph-json-filepath (make-parameter #f))
-
-(define num-test-cases (make-parameter #f))
-(define num-clock-cycles (make-parameter #f))
 (define output-signal-name (make-parameter #f))
-
-(require json)
 
 (command-line
  #:program "gator"
  #:once-each
  ["--json-filepath" v "Path to the JSON representing the module." (egraph-json-filepath v)]
- ["--num-test-cases" v "Number of test cases to run for." (num-test-cases v)]
- ["--num-clock-cycles" v "Number of clock cycles to run for." (num-clock-cycles v)]
  ["--output-signal-name" v "Signal to interpret." (output-signal-name v)])
 
 ;;; Read from the JSON file.
@@ -33,43 +22,47 @@
 
 (match-define (cons gator-expr out-ids) (json->gator egraph-json))
 
-(define (get-inputs)
-  (make-hash (list (cons "I5" 1)
-                   (cons "I4" 1)
-                   (cons "I3" 1)
-                   (cons "I2" 1)
-                   (cons "I1" 1)
-                   (cons "I0" 1)
-                   (cons "INIT" 64))))
+(define spec-expr
+  ;;; Exactly one solution for INIT where this is possible:
+  ;;; 0x800...0000, because first bit at index
+  ;;; [I5, I4, I3, I2, I1, I0] is 1 and all others are 0.
+  (list (gator:op bvmul '() '(1 2 3 4 5 6))
+        (gator:var 'I0 1)
+        (gator:var 'I1 1)
+        (gator:var 'I2 1)
+        (gator:var 'I3 1)
+        (gator:var 'I4 1)
+        (gator:var 'I5 1)))
 
-(for ([test-num (in-range (string->number (num-test-cases)))])
-  (define curr-env (make-hash))
-  (for ([clock-cycle (in-range (string->number (num-clock-cycles)))])
-    ;;; (displayln (format "Test case ~a, clock cycle ~a" test-num clock-cycle))
-    (for ([input-name (hash-keys (get-inputs))])
-      ;;; get {var-name}:{value} from stdin
-      (define line (read-line (current-input-port)))
-      (match-let* ([(list var-name value) (string-split line ":")]
-                   [old-value (hash-ref curr-env var-name (list))]
-                   [bitwidth (hash-ref (get-inputs) var-name)])
-        (when (> (length old-value) clock-cycle)
-          (error (format "Error: duplicate input for ~a at time ~a." var-name clock-cycle)))
-        (when (not (member var-name (hash-keys (get-inputs))))
-          (error
-           (format "Error: invalid input ~a, valid names are: ~a" var-name (hash-keys (get-inputs)))))
-        (hash-set! curr-env
-                   var-name
-                   (append old-value (list (bv (string->number value) bitwidth)))))))
+(define impl-expr gator-expr)
 
-  (for ([clock-cycle (in-range (string->number (num-clock-cycles)))])
-    (let ([output (interpret gator-expr
-                             (lambda (name time)
-                               (define name-str (symbol->string name))
-                               (when (not (member name-str (hash-keys curr-env)))
-                                 (error 'interpret (format "Error: variable ~a not found." name-str)))
-                               (hash-ref curr-env name-str))
-                             14
-                             clock-cycle
-                             (make-hash))])
-      ;;; (value, bitwidth)
-      (displayln (format "(~a, ~a)" (bitvector->natural output) (length (bitvector->bits output)))))))
+
+;;; TODO(@ninehusky): can I create a macro for this?
+(define-symbolic I5 (~> integer? (bitvector 1)))
+(define-symbolic I4 (~> integer? (bitvector 1)))
+(define-symbolic I3 (~> integer? (bitvector 1)))
+(define-symbolic I2 (~> integer? (bitvector 1)))
+(define-symbolic I1 (~> integer? (bitvector 1)))
+(define-symbolic I0 (~> integer? (bitvector 1)))
+
+(define-symbolic INIT (bitvector 64))
+(define-symbolic t integer?)
+
+(define (curr-env name time)
+  (match name
+    ['I5 (I5 time)]
+    ['I4 (I4 time)]
+    ['I3 (I3 time)]
+    ['I2 (I2 time)]
+    ['I1 (I1 time)]
+    ['I0 (I0 time)]
+    ['INIT INIT]))
+
+(pretty-print gator-expr)
+
+(interpret spec-expr curr-env 0 0 (list))
+(interpret impl-expr curr-env 14 0 (list))
+
+(synthesize #:forall (list I0 I1 I2 I3 I4 I5 t)
+            #:guarantee (assert (bveq (interpret impl-expr curr-env 14 t (list))
+                                      (interpret spec-expr curr-env 0 t (list)))))
